@@ -66,4 +66,5 @@ export const authConfig = {
     strategy: "jwt",
     maxAge: 24 * 60 * 60, // 24 hours
   },
+  trustHost: true,
 } satisfies NextAuthConfig;

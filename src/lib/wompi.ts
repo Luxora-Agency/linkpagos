@@ -350,8 +350,14 @@ export async function createWompiLink(params: CreateWompiLinkParams): Promise<{
     imageUrl: params.logoUrl,
   });
 
+  console.log("Full Wompi API Data Response:", JSON.stringify(response.data, null, 2));
+
+  // Fallback URL if not provided by API
+  const linkId = response.data.id;
+  const url = response.data.url || `https://checkout.wompi.co/l/${linkId}`;
+
   return {
-    linkId: response.data.id,
-    url: response.data.url,
+    linkId,
+    url,
   };
 }

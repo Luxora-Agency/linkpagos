@@ -28,6 +28,7 @@ interface PaymentLink {
   title: string;
   description: string | null;
   amount: number;
+  amountUsd: number | null;
   amountType: string;
   currency: string;
   logoUrl: string | null;
@@ -71,6 +72,13 @@ export function LinkDetailClient({ link }: LinkDetailClientProps) {
       style: "currency",
       currency: "COP",
       minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatUsd = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
     }).format(amount);
   };
 
@@ -229,7 +237,15 @@ export function LinkDetailClient({ link }: LinkDetailClientProps) {
                   <p className={`text-4xl font-bold bg-gradient-to-r ${getProviderColor()} bg-clip-text text-transparent`}>
                     {formatCurrency(link.amount)}
                   </p>
-                  <p className="text-sm text-slate-500">{link.currency}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-slate-500">{link.currency}</p>
+                    {link.amountUsd && (
+                      <>
+                        <span className="text-slate-700">•</span>
+                        <p className="text-sm text-slate-400 font-medium">{formatUsd(link.amountUsd)} (Visual)</p>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 

@@ -28,6 +28,7 @@ export interface CreatePaymentLinkInput {
   title: string;
   description?: string;
   amount: number;
+  amountUsd?: number;
   amountType?: "OPEN" | "CLOSE";
   logoUrl?: string;
   expirationDate?: Date;

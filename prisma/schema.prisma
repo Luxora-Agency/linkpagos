@@ -26,6 +26,7 @@ model PaymentLink {
   title          String
   description    String?
   amount         Int
+  amountUsd      Float?
   amountType     String          @default("CLOSE")
   currency       String          @default("COP")
   logoUrl        String?

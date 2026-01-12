@@ -57,6 +57,7 @@ interface PaymentLink {
   title: string;
   description: string | null;
   amount: number;
+  amountUsd: number | null;
   amountType: string;
   logoUrl: string | null;
   status: "ACTIVE" | "PROCESSING" | "PAID" | "EXPIRED";
@@ -100,6 +101,7 @@ export default function LinksPage() {
     title: "",
     description: "",
     amount: "",
+    amountUsd: "",
     amountType: "CLOSE",
     logoUrl: "",
     expirationDate: "",
@@ -162,6 +164,7 @@ export default function LinksPage() {
           title: formData.title,
           description: formData.description || undefined,
           amount: parseInt(formData.amount),
+          amountUsd: formData.amountUsd ? parseFloat(formData.amountUsd) : undefined,
           amountType: formData.amountType,
           expirationDate: formData.expirationDate ? new Date(formData.expirationDate).toISOString() : null,
           logoUrl: formData.logoUrl || null,
@@ -192,6 +195,7 @@ export default function LinksPage() {
       title: "",
       description: "",
       amount: "",
+      amountUsd: "",
       amountType: "CLOSE",
       logoUrl: "",
       expirationDate: "",
@@ -417,6 +421,23 @@ export default function LinksPage() {
                     required
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="amountUsd" className="text-slate-300">
+                    Monto (USD) - Solo visual
+                  </Label>
+                  <Input
+                    id="amountUsd"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.amountUsd}
+                    onChange={(e) =>
+                      setFormData({ ...formData, amountUsd: e.target.value })
+                    }
+                    placeholder="2.50"
+                    className="bg-slate-800 border-slate-700 text-white"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -629,7 +650,12 @@ export default function LinksPage() {
                     </TableCell>
                     <TableCell>{getProviderBadge(link.provider)}</TableCell>
                     <TableCell className="text-slate-300">
-                      {formatCurrency(link.amount)}
+                      <div>{formatCurrency(link.amount)}</div>
+                      {link.amountUsd && (
+                        <div className="text-[10px] text-slate-500">
+                          ~ {link.amountUsd} USD
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>{getStatusBadge(link.status)}</TableCell>
                     <TableCell className="text-slate-300">

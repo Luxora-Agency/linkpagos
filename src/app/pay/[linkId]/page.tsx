@@ -40,6 +40,17 @@ async function getPaymentLink(linkId: string) {
         const wompiStatus = await getWompiPaymentLinkStatus(link.providerLinkId);
         const isActive = wompiStatus.data.active;
 
+        // Update providerUrl if missing
+        if (!link.providerUrl && wompiStatus.data.url) {
+          await prisma.paymentLink.update({
+            where: { id: link.id },
+            data: {
+              providerUrl: wompiStatus.data.url,
+            },
+          });
+          link.providerUrl = wompiStatus.data.url;
+        }
+
         // Only update if link is expired on Wompi
         if (!isActive && link.status === "ACTIVE") {
           await prisma.paymentLink.update({

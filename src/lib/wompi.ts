@@ -233,17 +233,26 @@ export async function createWompiTransaction(params: {
   reference: string;
   redirectUrl?: string;
   paymentMethod?: WompiTransactionRequest["payment_method"];
+  acceptanceToken?: string;
+  acceptPersonalAuth?: string;
 }): Promise<WompiTransactionResponse> {
-  // Get acceptance tokens
-  const merchantInfo = await getMerchantInfo();
+  // Get acceptance tokens if not provided
+  let acceptanceToken = params.acceptanceToken;
+  let acceptPersonalAuth = params.acceptPersonalAuth;
+
+  if (!acceptanceToken || !acceptPersonalAuth) {
+    const merchantInfo = await getMerchantInfo();
+    acceptanceToken = acceptanceToken || merchantInfo.data.presigned_acceptance.acceptance_token;
+    acceptPersonalAuth = acceptPersonalAuth || merchantInfo.data.presigned_personal_data_auth.acceptance_token;
+  }
 
   const request: WompiTransactionRequest = {
     amount_in_cents: params.amount * 100, // Convert to cents
     currency: "COP",
     customer_email: params.customerEmail,
     reference: params.reference,
-    acceptance_token: merchantInfo.data.presigned_acceptance.acceptance_token,
-    accept_personal_auth: merchantInfo.data.presigned_personal_data_auth.acceptance_token,
+    acceptance_token: acceptanceToken,
+    accept_personal_auth: acceptPersonalAuth,
   };
 
   if (params.redirectUrl) {

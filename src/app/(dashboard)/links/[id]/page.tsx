@@ -96,6 +96,7 @@ export default async function LinkDetailPage({ params }: PageProps) {
         title: link.title,
         description: link.description,
         amount: link.amount,
+        amountUsd: link.amountUsd,
         amountType: link.amountType,
         currency: link.currency,
         logoUrl: link.logoUrl,

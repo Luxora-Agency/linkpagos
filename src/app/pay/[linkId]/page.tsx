@@ -88,6 +88,7 @@ export default async function PaymentPage({ params }: PageProps) {
         title: link.title,
         description: link.description,
         amount: link.amount,
+        amountUsd: link.amountUsd,
         logoUrl: link.logoUrl,
         status: link.status,
         paymentMethods: link.paymentMethods,

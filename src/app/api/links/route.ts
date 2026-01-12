@@ -10,7 +10,7 @@ const createLinkSchema = z.object({
   amount: z.number().min(1000, "El monto mínimo es $1,000 COP"),
   amountType: z.enum(["OPEN", "CLOSE"]).default("CLOSE"),
   logoUrl: z.string().url().optional().nullable(),
-  expirationDate: z.string().datetime().optional().nullable(),
+  expirationDate: z.string().optional().nullable(),
   callbackUrl: z.string().url().optional().nullable(),
   paymentMethods: z.array(z.string()).optional(),
 });

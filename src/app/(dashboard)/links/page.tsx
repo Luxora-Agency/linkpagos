@@ -129,10 +129,13 @@ export default function LinksPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
+          title: formData.title,
+          description: formData.description || undefined,
           amount: parseInt(formData.amount),
-          expirationDate: formData.expirationDate || null,
+          amountType: formData.amountType,
+          expirationDate: formData.expirationDate ? new Date(formData.expirationDate).toISOString() : null,
           logoUrl: formData.logoUrl || null,
+          paymentMethods: formData.paymentMethods,
         }),
       });
 

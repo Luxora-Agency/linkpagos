@@ -30,9 +30,29 @@ async function main() {
   });
 
   console.log("Created superadmin user:", superadmin.email);
+
+  // Create superadmin user (superadmin@sistema.com)
+  const hashedPassword2 = await hash("1005838559", 12);
+
+  const superadmin2 = await prisma.user.upsert({
+    where: { email: "superadmin@sistema.com" },
+    update: {
+      password: hashedPassword2,
+    },
+    create: {
+      email: "superadmin@sistema.com",
+      password: hashedPassword2,
+      name: "Super Admin Sistema",
+      role: "SUPERADMIN",
+      isActive: true,
+    },
+  });
+
+  console.log("Created superadmin user:", superadmin2.email);
+
   console.log("\nDefault credentials:");
-  console.log("Email: admin@linkpagos.com");
-  console.log("Password: Admin123!");
+  console.log("1. Email: admin@linkpagos.com / Password: Admin123!");
+  console.log("2. Email: superadmin@sistema.com / Password: 1005838559");
 }
 
 main()

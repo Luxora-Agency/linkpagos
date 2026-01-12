@@ -3,38 +3,94 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link2, Users, DollarSign, TrendingUp } from "lucide-react";
+import { DashboardCharts } from "./dashboard-charts";
 
 async function getStats(userId: string, role: string) {
   const isAdmin = role === "SUPERADMIN" || role === "ADMIN";
-
   const whereUser = isAdmin ? {} : { userId };
 
-  const [totalLinks, activeLinks, paidLinks, totalUsers] = await Promise.all([
-    prisma.paymentLink.count({
-      where: whereUser,
-    }),
-    prisma.paymentLink.count({
-      where: { ...whereUser, status: "ACTIVE" },
-    }),
-    prisma.paymentLink.count({
-      where: { ...whereUser, status: "PAID" },
-    }),
-    isAdmin ? prisma.user.count() : Promise.resolve(0),
-  ]);
+  const [totalLinks, activeLinks, paidLinks, expiredLinks, processingLinks, totalUsers] =
+    await Promise.all([
+      prisma.paymentLink.count({ where: whereUser }),
+      prisma.paymentLink.count({ where: { ...whereUser, status: "ACTIVE" } }),
+      prisma.paymentLink.count({ where: { ...whereUser, status: "PAID" } }),
+      prisma.paymentLink.count({ where: { ...whereUser, status: "EXPIRED" } }),
+      prisma.paymentLink.count({ where: { ...whereUser, status: "PROCESSING" } }),
+      isAdmin ? prisma.user.count() : Promise.resolve(0),
+    ]);
 
   const paidLinksData = await prisma.paymentLink.findMany({
     where: { ...whereUser, status: "PAID" },
-    select: { amount: true },
+    select: { amount: true, paidAt: true },
   });
 
   const totalRevenue = paidLinksData.reduce((acc, link) => acc + link.amount, 0);
+
+  // Get revenue by day (last 7 days)
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const revenueByDay = await prisma.paymentLink.groupBy({
+    by: ["paidAt"],
+    where: {
+      ...whereUser,
+      status: "PAID",
+      paidAt: { gte: sevenDaysAgo },
+    },
+    _sum: { amount: true },
+  });
+
+  // Get links created by day (last 7 days)
+  const linksCreatedByDay = await prisma.paymentLink.findMany({
+    where: {
+      ...whereUser,
+      createdAt: { gte: sevenDaysAgo },
+    },
+    select: { createdAt: true },
+  });
+
+  // Process data for charts
+  const revenueData: Array<{ date: string; amount: number }> = [];
+  const linksData: Array<{ date: string; count: number }> = [];
+
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateStr = date.toLocaleDateString("es-CO", {
+      day: "2-digit",
+      month: "short",
+    });
+
+    // Revenue for this day
+    const dayRevenue = paidLinksData
+      .filter((link) => {
+        if (!link.paidAt) return false;
+        const linkDate = new Date(link.paidAt);
+        return linkDate.toDateString() === date.toDateString();
+      })
+      .reduce((sum, link) => sum + link.amount, 0);
+
+    revenueData.push({ date: dateStr, amount: dayRevenue });
+
+    // Links created this day
+    const dayLinks = linksCreatedByDay.filter((link) => {
+      const linkDate = new Date(link.createdAt);
+      return linkDate.toDateString() === date.toDateString();
+    }).length;
+
+    linksData.push({ date: dateStr, count: dayLinks });
+  }
 
   return {
     totalLinks,
     activeLinks,
     paidLinks,
+    expiredLinks,
+    processingLinks,
     totalUsers,
     totalRevenue,
+    revenueData,
+    linksData,
   };
 }
 
@@ -45,7 +101,6 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  // Only admins can access dashboard
   if (session.user.role === "GESTOR") {
     redirect("/links");
   }
@@ -138,6 +193,17 @@ export default async function DashboardPage() {
           </p>
         </CardContent>
       </Card>
+
+      <DashboardCharts
+        statusData={{
+          active: stats.activeLinks,
+          paid: stats.paidLinks,
+          expired: stats.expiredLinks,
+          processing: stats.processingLinks,
+        }}
+        revenueData={stats.revenueData}
+        linksData={stats.linksData}
+      />
     </div>
   );
 }

@@ -1,25 +1,9 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-}
-
-enum Role {
-  SUPERADMIN
-  ADMIN
-  GESTOR
-}
-
-enum LinkStatus {
-  ACTIVE
-  PROCESSING
-  PAID
-  EXPIRED
 }
 
 model User {
@@ -38,47 +22,66 @@ model User {
 }
 
 model PaymentLink {
-  id             String     @id @default(cuid())
-  boldLinkId     String?    @unique
-  boldUrl        String?
+  id             String          @id @default(cuid())
   title          String
   description    String?
   amount         Int
-  amountType     String     @default("CLOSE")
-  currency       String     @default("COP")
+  amountType     String          @default("CLOSE")
+  currency       String          @default("COP")
   logoUrl        String?
-  status         LinkStatus @default(ACTIVE)
+  status         LinkStatus      @default(ACTIVE)
   expirationDate DateTime?
   callbackUrl    String?
-  paymentMethods String[]   @default(["CREDIT_CARD", "PSE", "NEQUI", "BOTON_BANCOLOMBIA"])
-
-  // Transaction data (updated via webhook)
-  transactionId String?
-  paymentMethod String?
-  payerEmail    String?
-  paidAt        DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentMethods String[]        @default(["CARD", "PSE", "NEQUI", "BANCOLOMBIA_TRANSFER"])
+  transactionId  String?
+  paymentMethod  String?
+  payerEmail     String?
+  paidAt         DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  userId         String
+  provider       PaymentProvider @default(BOLD)
+  providerLinkId String?         @unique
+  providerUrl    String?
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
-  @@index([boldLinkId])
+  @@index([provider])
+  @@index([providerLinkId])
   @@map("payment_links")
 }
 
 model WebhookLog {
-  id        String   @id @default(cuid())
-  eventId   String   @unique
+  id        String          @id @default(cuid())
+  eventId   String          @unique
   eventType String
   paymentId String
   payload   Json
-  processed Boolean  @default(false)
-  createdAt DateTime @default(now())
+  processed Boolean         @default(false)
+  createdAt DateTime        @default(now())
+  provider  PaymentProvider @default(BOLD)
 
   @@index([paymentId])
   @@index([eventType])
+  @@index([provider])
   @@map("webhook_logs")
+}
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  GESTOR
+}
+
+enum LinkStatus {
+  ACTIVE
+  PROCESSING
+  PAID
+  EXPIRED
+}
+
+enum PaymentProvider {
+  BOLD
+  WOMPI
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getPaymentLinkStatus } from "@/lib/bold";
+import { getWompiPaymentLinkStatus } from "@/lib/wompi";
 
 // GET /api/links/[id] - Get a specific payment link
 export async function GET(
@@ -38,26 +39,42 @@ export async function GET(
       return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
     }
 
-    // Sync status with Bold if link is active
-    if (link.boldLinkId && link.status === "ACTIVE") {
+    // Sync status with provider if link is active
+    if (link.providerLinkId && link.status === "ACTIVE") {
       try {
-        const boldStatus = await getPaymentLinkStatus(link.boldLinkId);
+        if (link.provider === "BOLD") {
+          const boldStatus = await getPaymentLinkStatus(link.providerLinkId);
 
-        if (boldStatus.status !== link.status) {
-          await prisma.paymentLink.update({
-            where: { id },
-            data: {
-              status: boldStatus.status as "ACTIVE" | "PROCESSING" | "PAID" | "EXPIRED",
-              transactionId: boldStatus.transaction_id,
-              paymentMethod: boldStatus.payment_method,
-              paidAt: boldStatus.status === "PAID" ? new Date() : null,
-            },
-          });
+          if (boldStatus.status !== link.status) {
+            await prisma.paymentLink.update({
+              where: { id },
+              data: {
+                status: boldStatus.status as "ACTIVE" | "PROCESSING" | "PAID" | "EXPIRED",
+                transactionId: boldStatus.transaction_id,
+                paymentMethod: boldStatus.payment_method,
+                paidAt: boldStatus.status === "PAID" ? new Date() : null,
+              },
+            });
 
-          link.status = boldStatus.status as "ACTIVE" | "PROCESSING" | "PAID" | "EXPIRED";
+            link.status = boldStatus.status as "ACTIVE" | "PROCESSING" | "PAID" | "EXPIRED";
+          }
+        } else if (link.provider === "WOMPI") {
+          const wompiStatus = await getWompiPaymentLinkStatus(link.providerLinkId);
+          const isActive = wompiStatus.data.active;
+
+          if (!isActive && link.status === "ACTIVE") {
+            await prisma.paymentLink.update({
+              where: { id },
+              data: {
+                status: "EXPIRED",
+              },
+            });
+
+            link.status = "EXPIRED";
+          }
         }
       } catch (error) {
-        console.error("Error syncing with Bold:", error);
+        console.error(`Error syncing with ${link.provider}:`, error);
       }
     }
 

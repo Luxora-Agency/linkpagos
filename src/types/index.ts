@@ -1,6 +1,6 @@
-import { Role, LinkStatus } from "@prisma/client";
+import { Role, LinkStatus, PaymentProvider } from "@prisma/client";
 
-export type { Role, LinkStatus };
+export type { Role, LinkStatus, PaymentProvider };
 
 export interface UserSession {
   id: string;
@@ -33,6 +33,7 @@ export interface CreatePaymentLinkInput {
   expirationDate?: Date;
   callbackUrl?: string;
   paymentMethods?: string[];
+  provider?: PaymentProvider;
 }
 
 export interface UpdatePaymentLinkInput {

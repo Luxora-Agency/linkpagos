@@ -72,11 +72,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "No reference found" });
     }
 
-    // Find the payment link by boldLinkId (reference starts with LNK_)
+    // Find the payment link by providerLinkId (reference starts with LNK_)
     let link;
     if (reference.startsWith("LNK_")) {
       link = await prisma.paymentLink.findUnique({
-        where: { boldLinkId: reference },
+        where: { providerLinkId: reference },
       });
     }
 

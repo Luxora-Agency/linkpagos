@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { getPaymentLinkStatus } from "@/lib/bold";
+import { getWompiPaymentLinkStatus } from "@/lib/wompi";
 import { LinkDetailClient } from "./link-detail-client";
 
 interface PageProps {
@@ -26,26 +27,45 @@ async function getLink(id: string, userId: string, role: string) {
     return null;
   }
 
-  // Sync status with Bold if active
-  if (link.boldLinkId && link.status === "ACTIVE") {
+  // Sync status with provider if active
+  if (link.providerLinkId && link.status === "ACTIVE") {
     try {
-      const boldStatus = await getPaymentLinkStatus(link.boldLinkId);
+      if (link.provider === "BOLD") {
+        const boldStatus = await getPaymentLinkStatus(link.providerLinkId);
 
-      if (boldStatus.status !== link.status) {
-        await prisma.paymentLink.update({
-          where: { id },
-          data: {
-            status: boldStatus.status as "ACTIVE" | "PROCESSING" | "PAID" | "EXPIRED",
-            transactionId: boldStatus.transaction_id,
-            paymentMethod: boldStatus.payment_method,
-            paidAt: boldStatus.status === "PAID" ? new Date() : null,
-          },
-        });
+        if (boldStatus.status !== link.status) {
+          await prisma.paymentLink.update({
+            where: { id },
+            data: {
+              status: boldStatus.status as "ACTIVE" | "PROCESSING" | "PAID" | "EXPIRED",
+              transactionId: boldStatus.transaction_id,
+              paymentMethod: boldStatus.payment_method,
+              paidAt: boldStatus.status === "PAID" ? new Date() : null,
+            },
+          });
 
-        link.status = boldStatus.status as "ACTIVE" | "PROCESSING" | "PAID" | "EXPIRED";
+          link.status = boldStatus.status as "ACTIVE" | "PROCESSING" | "PAID" | "EXPIRED";
+        }
+      } else if (link.provider === "WOMPI") {
+        const wompiStatus = await getWompiPaymentLinkStatus(link.providerLinkId);
+        const isActive = wompiStatus.data.active;
+
+        // Only update if the link is not already paid and the status has changed
+        if (isActive && link.status !== "ACTIVE") {
+          // Link is active on Wompi but not marked active locally
+        } else if (!isActive && link.status === "ACTIVE") {
+          await prisma.paymentLink.update({
+            where: { id },
+            data: {
+              status: "EXPIRED",
+            },
+          });
+
+          link.status = "EXPIRED";
+        }
       }
     } catch (error) {
-      console.error("Error syncing with Bold:", error);
+      console.error(`Error syncing with ${link.provider}:`, error);
     }
   }
 
@@ -70,8 +90,9 @@ export default async function LinkDetailPage({ params }: PageProps) {
     <LinkDetailClient
       link={{
         id: link.id,
-        boldLinkId: link.boldLinkId,
-        boldUrl: link.boldUrl,
+        provider: link.provider,
+        providerLinkId: link.providerLinkId,
+        providerUrl: link.providerUrl,
         title: link.title,
         description: link.description,
         amount: link.amount,

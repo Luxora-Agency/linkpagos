@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { createBoldLink } from "@/lib/bold";
+import { createWompiLink } from "@/lib/wompi";
 import { z } from "zod";
+import { PaymentProvider } from "@prisma/client";
 
 const createLinkSchema = z.object({
   title: z.string().min(2, "El título debe tener al menos 2 caracteres"),
@@ -13,6 +15,7 @@ const createLinkSchema = z.object({
   expirationDate: z.string().optional().nullable(),
   callbackUrl: z.string().url().optional().nullable(),
   paymentMethods: z.array(z.string()).optional(),
+  provider: z.enum(["BOLD", "WOMPI"]).default("WOMPI"),
 });
 
 // GET /api/links - List all payment links
@@ -26,6 +29,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
+    const provider = searchParams.get("provider");
     const page = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "10");
 
@@ -41,6 +45,11 @@ export async function GET(request: Request) {
     // Filter by status if provided
     if (status) {
       where.status = status;
+    }
+
+    // Filter by provider if provided
+    if (provider) {
+      where.provider = provider;
     }
 
     const [links, total] = await Promise.all([
@@ -67,8 +76,9 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Error fetching links:", error);
+    const errorMessage = error instanceof Error ? error.message : "Error desconocido";
     return NextResponse.json(
-      { error: "Error al obtener links" },
+      { error: "Error al obtener links", details: errorMessage },
       { status: 500 }
     );
   }
@@ -102,32 +112,67 @@ export async function POST(request: Request) {
       expirationDate,
       callbackUrl,
       paymentMethods,
+      provider,
     } = validation.data;
 
-    // Create link in Bold
-    const boldResponse = await createBoldLink({
-      title,
-      description: description || title,
-      amount,
-      amountType,
-      logoUrl: logoUrl || undefined,
-      expirationDate: expirationDate ? new Date(expirationDate) : undefined,
-      callbackUrl: callbackUrl || undefined,
-      paymentMethods,
-    });
+    let providerLinkId: string | null = null;
+    let providerUrl: string | null = null;
 
-    if (boldResponse.errors && boldResponse.errors.length > 0) {
-      return NextResponse.json(
-        { error: boldResponse.errors.join(", ") },
-        { status: 400 }
-      );
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+    if (provider === "BOLD") {
+      // Create link in Bold
+      const boldResponse = await createBoldLink({
+        title,
+        description: description || title,
+        amount,
+        amountType,
+        logoUrl: logoUrl || undefined,
+        expirationDate: expirationDate ? new Date(expirationDate) : undefined,
+        callbackUrl: callbackUrl || undefined,
+        paymentMethods,
+      });
+
+      if (boldResponse.errors && boldResponse.errors.length > 0) {
+        return NextResponse.json(
+          { error: boldResponse.errors.join(", ") },
+          { status: 400 }
+        );
+      }
+
+      providerLinkId = boldResponse.payload.payment_link;
+      providerUrl = boldResponse.payload.url;
+    } else if (provider === "WOMPI") {
+      // Create link in Wompi
+      try {
+        const wompiResponse = await createWompiLink({
+          title,
+          description: description || title,
+          amount,
+          expirationDate: expirationDate ? new Date(expirationDate) : undefined,
+          redirectUrl: `${appUrl}/pay/callback`,
+          logoUrl: logoUrl || undefined,
+        });
+
+        console.log("Wompi Response:", JSON.stringify(wompiResponse, null, 2));
+
+        providerLinkId = wompiResponse.linkId;
+        providerUrl = wompiResponse.url;
+      } catch (error) {
+        console.error("Wompi API Error:", error);
+        return NextResponse.json(
+          { error: error instanceof Error ? error.message : "Error al crear link en Wompi" },
+          { status: 400 }
+        );
+      }
     }
 
     // Save to database
     const link = await prisma.paymentLink.create({
       data: {
-        boldLinkId: boldResponse.payload.payment_link,
-        boldUrl: boldResponse.payload.url,
+        provider: provider as PaymentProvider,
+        providerLinkId,
+        providerUrl,
         title,
         description,
         amount,
@@ -135,7 +180,7 @@ export async function POST(request: Request) {
         logoUrl,
         expirationDate: expirationDate ? new Date(expirationDate) : null,
         callbackUrl,
-        paymentMethods: paymentMethods || ["CREDIT_CARD", "PSE", "NEQUI", "BOTON_BANCOLOMBIA"],
+        paymentMethods: paymentMethods || ["CARD", "PSE", "NEQUI", "BANCOLOMBIA_TRANSFER"],
         userId: session.user.id,
       },
     });

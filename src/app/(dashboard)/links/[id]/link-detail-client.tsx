@@ -22,8 +22,9 @@ import {
 
 interface PaymentLink {
   id: string;
-  boldLinkId: string | null;
-  boldUrl: string | null;
+  provider: "BOLD" | "WOMPI";
+  providerLinkId: string | null;
+  providerUrl: string | null;
   title: string;
   description: string | null;
   amount: number;
@@ -50,12 +51,16 @@ interface LinkDetailClientProps {
 }
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  CREDIT_CARD: "Tarjeta de Crédito",
-  PSE: "PSE",
-  NEQUI: "Nequi",
-  BOTON_BANCOLOMBIA: "Botón Bancolombia",
+  // Bold methods
+  CREDIT_CARD: "Tarjeta de Credito",
+  BOTON_BANCOLOMBIA: "Boton Bancolombia",
+  // Wompi methods
   CARD: "Tarjeta",
   CARD_WEB: "Tarjeta Web",
+  BANCOLOMBIA_TRANSFER: "Transferencia Bancolombia",
+  // Shared methods
+  PSE: "PSE",
+  NEQUI: "Nequi",
 };
 
 export function LinkDetailClient({ link }: LinkDetailClientProps) {
@@ -82,7 +87,7 @@ export function LinkDetailClient({ link }: LinkDetailClientProps) {
   };
 
   const handleDelete = async () => {
-    if (!confirm(`¿Estás seguro de eliminar este link de pago?`)) return;
+    if (!confirm(`¿Estas seguro de eliminar este link de pago?`)) return;
 
     try {
       const res = await fetch(`/api/links/${link.id}`, {
@@ -129,6 +134,29 @@ export function LinkDetailClient({ link }: LinkDetailClientProps) {
     );
   };
 
+  const getProviderBadge = (provider: string) => {
+    const styles: Record<string, string> = {
+      BOLD: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+      WOMPI: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+    };
+
+    return (
+      <Badge variant="outline" className={`${styles[provider]} px-3 py-1`}>
+        {provider}
+      </Badge>
+    );
+  };
+
+  const getProviderColor = () => {
+    return link.provider === "BOLD"
+      ? "from-orange-500 to-amber-500"
+      : "from-emerald-500 to-teal-500";
+  };
+
+  const getProviderName = () => {
+    return link.provider === "BOLD" ? "Bold" : "Wompi";
+  };
+
   const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/pay/${link.id}`;
 
   return (
@@ -146,8 +174,11 @@ export function LinkDetailClient({ link }: LinkDetailClientProps) {
             Volver
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-white">{link.title}</h1>
-            <p className="text-slate-400">{link.boldLinkId || link.id}</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-white">{link.title}</h1>
+              {getProviderBadge(link.provider)}
+            </div>
+            <p className="text-slate-400">{link.providerLinkId || link.id}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -179,7 +210,7 @@ export function LinkDetailClient({ link }: LinkDetailClientProps) {
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-white">Información del Link</CardTitle>
+                <CardTitle className="text-white">Informacion del Link</CardTitle>
                 {getStatusBadge(link.status)}
               </div>
             </CardHeader>
@@ -195,7 +226,7 @@ export function LinkDetailClient({ link }: LinkDetailClientProps) {
                 )}
                 <div>
                   <p className="text-sm text-slate-400">Monto</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  <p className={`text-4xl font-bold bg-gradient-to-r ${getProviderColor()} bg-clip-text text-transparent`}>
                     {formatCurrency(link.amount)}
                   </p>
                   <p className="text-sm text-slate-500">{link.currency}</p>
@@ -207,14 +238,14 @@ export function LinkDetailClient({ link }: LinkDetailClientProps) {
               {/* Description */}
               {link.description && (
                 <div>
-                  <p className="text-sm text-slate-400 mb-1">Descripción</p>
+                  <p className="text-sm text-slate-400 mb-1">Descripcion</p>
                   <p className="text-white">{link.description}</p>
                 </div>
               )}
 
               {/* Payment Methods */}
               <div>
-                <p className="text-sm text-slate-400 mb-2">Métodos de pago</p>
+                <p className="text-sm text-slate-400 mb-2">Metodos de pago</p>
                 <div className="flex flex-wrap gap-2">
                   {link.paymentMethods.map((method) => (
                     <Badge
@@ -267,20 +298,20 @@ export function LinkDetailClient({ link }: LinkDetailClientProps) {
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <CreditCard className="h-5 w-5 text-green-400" />
-                  Información del Pago
+                  Informacion del Pago
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   {link.transactionId && (
                     <div>
-                      <p className="text-sm text-slate-400">ID Transacción</p>
+                      <p className="text-sm text-slate-400">ID Transaccion</p>
                       <p className="text-white font-mono">{link.transactionId}</p>
                     </div>
                   )}
                   {link.paymentMethod && (
                     <div>
-                      <p className="text-sm text-slate-400">Método de Pago</p>
+                      <p className="text-sm text-slate-400">Metodo de Pago</p>
                       <p className="text-white">
                         {PAYMENT_METHOD_LABELS[link.paymentMethod] || link.paymentMethod}
                       </p>
@@ -312,25 +343,25 @@ export function LinkDetailClient({ link }: LinkDetailClientProps) {
           {/* Quick Actions */}
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
-              <CardTitle className="text-white">Acciones Rápidas</CardTitle>
+              <CardTitle className="text-white">Acciones Rapidas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {link.boldUrl && (
+              {link.providerUrl && (
                 <>
                   <Button
-                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                    onClick={() => window.open(link.boldUrl!, "_blank")}
+                    className={`w-full bg-gradient-to-r ${getProviderColor()} hover:opacity-90`}
+                    onClick={() => window.open(link.providerUrl!, "_blank")}
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    Abrir en Bold
+                    Abrir en {getProviderName()}
                   </Button>
                   <Button
                     variant="outline"
                     className="w-full border-slate-700 text-slate-300"
-                    onClick={() => copyToClipboard(link.boldUrl!)}
+                    onClick={() => copyToClipboard(link.providerUrl!)}
                   >
                     <Copy className="h-4 w-4 mr-2" />
-                    Copiar URL Bold
+                    Copiar URL {getProviderName()}
                   </Button>
                 </>
               )}
@@ -340,7 +371,7 @@ export function LinkDetailClient({ link }: LinkDetailClientProps) {
                 onClick={() => copyToClipboard(publicUrl)}
               >
                 <Copy className="h-4 w-4 mr-2" />
-                Copiar URL Pública
+                Copiar URL Publica
               </Button>
               <Button
                 variant="outline"
@@ -348,7 +379,7 @@ export function LinkDetailClient({ link }: LinkDetailClientProps) {
                 onClick={() => window.open(publicUrl, "_blank")}
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Ver Página de Pago
+                Ver Pagina de Pago
               </Button>
             </CardContent>
           </Card>
@@ -359,16 +390,16 @@ export function LinkDetailClient({ link }: LinkDetailClientProps) {
               <CardTitle className="text-white text-sm">URLs</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {link.boldUrl && (
+              {link.providerUrl && (
                 <div>
-                  <p className="text-xs text-slate-400 mb-1">URL de Bold</p>
+                  <p className="text-xs text-slate-400 mb-1">URL de {getProviderName()}</p>
                   <p className="text-xs text-slate-300 break-all font-mono bg-slate-800 p-2 rounded">
-                    {link.boldUrl}
+                    {link.providerUrl}
                   </p>
                 </div>
               )}
               <div>
-                <p className="text-xs text-slate-400 mb-1">URL Pública</p>
+                <p className="text-xs text-slate-400 mb-1">URL Publica</p>
                 <p className="text-xs text-slate-300 break-all font-mono bg-slate-800 p-2 rounded">
                   {publicUrl}
                 </p>

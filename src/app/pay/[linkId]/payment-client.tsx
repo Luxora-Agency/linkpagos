@@ -15,7 +15,8 @@ import {
 
 interface PaymentLink {
   id: string;
-  boldUrl: string | null;
+  provider: "BOLD" | "WOMPI";
+  providerUrl: string | null;
   title: string;
   description: string | null;
   amount: number;
@@ -28,18 +29,30 @@ interface PaymentPageClientProps {
   link: PaymentLink;
 }
 
+// Payment method icons for both providers
 const PAYMENT_METHOD_ICONS: Record<string, React.ReactNode> = {
+  // Bold methods
   CREDIT_CARD: <CreditCard className="w-5 h-5" />,
+  BOTON_BANCOLOMBIA: <Building2 className="w-5 h-5" />,
+  // Wompi methods
+  CARD: <CreditCard className="w-5 h-5" />,
+  BANCOLOMBIA_TRANSFER: <Building2 className="w-5 h-5" />,
+  // Shared methods
   PSE: <Building2 className="w-5 h-5" />,
   NEQUI: <Smartphone className="w-5 h-5" />,
-  BOTON_BANCOLOMBIA: <Building2 className="w-5 h-5" />,
 };
 
+// Payment method labels for both providers
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  // Bold methods
   CREDIT_CARD: "Tarjeta",
+  BOTON_BANCOLOMBIA: "Bancolombia",
+  // Wompi methods
+  CARD: "Tarjeta",
+  BANCOLOMBIA_TRANSFER: "Bancolombia",
+  // Shared methods
   PSE: "PSE",
   NEQUI: "Nequi",
-  BOTON_BANCOLOMBIA: "Bancolombia",
 };
 
 export function PaymentPageClient({ link }: PaymentPageClientProps) {
@@ -52,9 +65,19 @@ export function PaymentPageClient({ link }: PaymentPageClientProps) {
   };
 
   const handlePayment = () => {
-    if (link.boldUrl) {
-      window.location.href = link.boldUrl;
+    if (link.providerUrl) {
+      window.location.href = link.providerUrl;
     }
+  };
+
+  const getProviderName = () => {
+    return link.provider === "BOLD" ? "Bold" : "Wompi";
+  };
+
+  const getProviderColor = () => {
+    return link.provider === "BOLD"
+      ? "from-orange-500 to-amber-500"
+      : "from-emerald-500 to-teal-500";
   };
 
   // Status pages
@@ -128,7 +151,7 @@ export function PaymentPageClient({ link }: PaymentPageClientProps) {
 
       <Card className="w-full max-w-md relative z-10 bg-slate-900/80 backdrop-blur-xl border-slate-800 overflow-hidden">
         {/* Gradient border effect */}
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500"></div>
+        <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${getProviderColor()}`}></div>
 
         <CardContent className="p-8">
           {/* Logo */}
@@ -140,7 +163,7 @@ export function PaymentPageClient({ link }: PaymentPageClientProps) {
                 className="w-24 h-24 rounded-2xl object-cover shadow-lg shadow-purple-500/20"
               />
             ) : (
-              <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/20">
+              <div className={`w-24 h-24 bg-gradient-to-br ${getProviderColor()} rounded-2xl flex items-center justify-center shadow-lg`}>
                 <CreditCard className="w-10 h-10 text-white" />
               </div>
             )}
@@ -159,7 +182,7 @@ export function PaymentPageClient({ link }: PaymentPageClientProps) {
             <p className="text-sm text-slate-400 text-center mb-2">
               Total a pagar
             </p>
-            <p className="text-4xl font-bold text-center bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <p className={`text-4xl font-bold text-center bg-gradient-to-r ${getProviderColor()} bg-clip-text text-transparent`}>
               {formatCurrency(link.amount)}
             </p>
           </div>
@@ -175,11 +198,11 @@ export function PaymentPageClient({ link }: PaymentPageClientProps) {
                   key={method}
                   className="flex items-center gap-2 bg-slate-800/50 rounded-lg px-3 py-2"
                 >
-                  <span className="text-purple-400">
-                    {PAYMENT_METHOD_ICONS[method]}
+                  <span className={link.provider === "BOLD" ? "text-orange-400" : "text-emerald-400"}>
+                    {PAYMENT_METHOD_ICONS[method] || <CreditCard className="w-5 h-5" />}
                   </span>
                   <span className="text-sm text-slate-300">
-                    {PAYMENT_METHOD_LABELS[method]}
+                    {PAYMENT_METHOD_LABELS[method] || method}
                   </span>
                 </div>
               ))}
@@ -189,7 +212,8 @@ export function PaymentPageClient({ link }: PaymentPageClientProps) {
           {/* Pay Button */}
           <Button
             onClick={handlePayment}
-            className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-xl shadow-lg shadow-purple-500/30 transition-all hover:shadow-purple-500/50"
+            disabled={!link.providerUrl}
+            className={`w-full h-14 text-lg font-semibold bg-gradient-to-r ${getProviderColor()} hover:opacity-90 rounded-xl shadow-lg transition-all`}
           >
             Pagar Ahora
           </Button>
@@ -197,7 +221,7 @@ export function PaymentPageClient({ link }: PaymentPageClientProps) {
           {/* Security badge */}
           <div className="flex items-center justify-center gap-2 mt-6 text-slate-500">
             <ShieldCheck className="w-4 h-4" />
-            <span className="text-xs">Pago seguro con Bold</span>
+            <span className="text-xs">Pago seguro con {getProviderName()}</span>
           </div>
         </CardContent>
       </Card>

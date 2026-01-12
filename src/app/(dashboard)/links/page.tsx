@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,9 +10,7 @@ import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Dialog,
@@ -47,12 +46,14 @@ import {
   ImagePlus,
   X,
   RefreshCw,
+  Eye,
 } from "lucide-react";
 
 interface PaymentLink {
   id: string;
-  boldLinkId: string | null;
-  boldUrl: string | null;
+  provider: "BOLD" | "WOMPI";
+  providerLinkId: string | null;
+  providerUrl: string | null;
   title: string;
   description: string | null;
   amount: number;
@@ -68,19 +69,28 @@ interface PaymentLink {
   };
 }
 
-const PAYMENT_METHODS = [
-  { id: "CREDIT_CARD", label: "Tarjeta de Crédito" },
+const PAYMENT_METHODS_WOMPI = [
+  { id: "CARD", label: "Tarjeta de Credito/Debito" },
   { id: "PSE", label: "PSE" },
   { id: "NEQUI", label: "Nequi" },
-  { id: "BOTON_BANCOLOMBIA", label: "Botón Bancolombia" },
+  { id: "BANCOLOMBIA_TRANSFER", label: "Transferencia Bancolombia" },
+];
+
+const PAYMENT_METHODS_BOLD = [
+  { id: "CREDIT_CARD", label: "Tarjeta de Credito" },
+  { id: "PSE", label: "PSE" },
+  { id: "NEQUI", label: "Nequi" },
+  { id: "BOTON_BANCOLOMBIA", label: "Boton Bancolombia" },
 ];
 
 export default function LinksPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [links, setLinks] = useState<PaymentLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [providerFilter, setProviderFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -93,14 +103,22 @@ export default function LinksPage() {
     amountType: "CLOSE",
     logoUrl: "",
     expirationDate: "",
-    paymentMethods: ["CREDIT_CARD", "PSE", "NEQUI", "BOTON_BANCOLOMBIA"],
+    paymentMethods: ["CARD", "PSE", "NEQUI", "BANCOLOMBIA_TRANSFER"],
+    provider: "WOMPI" as "BOLD" | "WOMPI",
   });
+
+  const currentPaymentMethods = formData.provider === "WOMPI"
+    ? PAYMENT_METHODS_WOMPI
+    : PAYMENT_METHODS_BOLD;
 
   const fetchLinks = async () => {
     try {
       const params = new URLSearchParams();
       if (statusFilter !== "all") {
         params.set("status", statusFilter);
+      }
+      if (providerFilter !== "all") {
+        params.set("provider", providerFilter);
       }
 
       const res = await fetch(`/api/links?${params.toString()}`);
@@ -118,7 +136,19 @@ export default function LinksPage() {
 
   useEffect(() => {
     fetchLinks();
-  }, [statusFilter]);
+  }, [statusFilter, providerFilter]);
+
+  const handleProviderChange = (provider: "BOLD" | "WOMPI") => {
+    const defaultMethods = provider === "WOMPI"
+      ? ["CARD", "PSE", "NEQUI", "BANCOLOMBIA_TRANSFER"]
+      : ["CREDIT_CARD", "PSE", "NEQUI", "BOTON_BANCOLOMBIA"];
+
+    setFormData({
+      ...formData,
+      provider,
+      paymentMethods: defaultMethods,
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,6 +166,7 @@ export default function LinksPage() {
           expirationDate: formData.expirationDate ? new Date(formData.expirationDate).toISOString() : null,
           logoUrl: formData.logoUrl || null,
           paymentMethods: formData.paymentMethods,
+          provider: formData.provider,
         }),
       });
 
@@ -164,12 +195,13 @@ export default function LinksPage() {
       amountType: "CLOSE",
       logoUrl: "",
       expirationDate: "",
-      paymentMethods: ["CREDIT_CARD", "PSE", "NEQUI", "BOTON_BANCOLOMBIA"],
+      paymentMethods: ["CARD", "PSE", "NEQUI", "BANCOLOMBIA_TRANSFER"],
+      provider: "WOMPI",
     });
   };
 
   const handleDelete = async (link: PaymentLink) => {
-    if (!confirm(`¿Estás seguro de eliminar el link "${link.title}"?`)) return;
+    if (!confirm(`¿Estas seguro de eliminar el link "${link.title}"?`)) return;
 
     try {
       const res = await fetch(`/api/links/${link.id}`, {
@@ -258,10 +290,23 @@ export default function LinksPage() {
     );
   };
 
+  const getProviderBadge = (provider: string) => {
+    const styles: Record<string, string> = {
+      BOLD: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+      WOMPI: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+    };
+
+    return (
+      <Badge variant="outline" className={styles[provider]}>
+        {provider}
+      </Badge>
+    );
+  };
+
   const filteredLinks = links.filter(
     (link) =>
       link.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      link.boldLinkId?.toLowerCase().includes(searchTerm.toLowerCase())
+      link.providerLinkId?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const togglePaymentMethod = (method: string) => {
@@ -277,7 +322,7 @@ export default function LinksPage() {
         <div>
           <h1 className="text-3xl font-bold text-white">Links de Pago</h1>
           <p className="text-slate-400 mt-1">
-            Crea y gestiona tus links de pago
+            Crea y gestiona tus links de pago con Bold o Wompi
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -296,14 +341,53 @@ export default function LinksPage() {
                 Crear Link de Pago
               </DialogTitle>
               <DialogDescription className="text-slate-400">
-                Completa los datos para crear un nuevo link de pago
+                Selecciona el proveedor y completa los datos
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Provider Selector */}
+              <div className="space-y-2">
+                <Label className="text-slate-300">Proveedor de Pagos *</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => handleProviderChange("WOMPI")}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      formData.provider === "WOMPI"
+                        ? "border-emerald-500 bg-emerald-500/10"
+                        : "border-slate-700 bg-slate-800 hover:border-slate-600"
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="text-2xl font-bold text-emerald-400">Wompi</div>
+                      <span className="text-xs text-slate-400">
+                        Tarjeta, PSE, Nequi, Bancolombia
+                      </span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleProviderChange("BOLD")}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      formData.provider === "BOLD"
+                        ? "border-orange-500 bg-orange-500/10"
+                        : "border-slate-700 bg-slate-800 hover:border-slate-600"
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="text-2xl font-bold text-orange-400">Bold</div>
+                      <span className="text-xs text-slate-400">
+                        Tarjeta, PSE, Nequi, Bancolombia
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="title" className="text-slate-300">
-                    Título *
+                    Titulo *
                   </Label>
                   <Input
                     id="title"
@@ -337,7 +421,7 @@ export default function LinksPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="description" className="text-slate-300">
-                  Descripción
+                  Descripcion
                 </Label>
                 <Input
                   id="description"
@@ -345,7 +429,7 @@ export default function LinksPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  placeholder="Descripción del pago (máx 100 caracteres)"
+                  placeholder="Descripcion del pago (max 100 caracteres)"
                   maxLength={100}
                   className="bg-slate-800 border-slate-700 text-white"
                 />
@@ -399,7 +483,7 @@ export default function LinksPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="expirationDate" className="text-slate-300">
-                  Fecha de expiración (opcional)
+                  Fecha de expiracion (opcional)
                 </Label>
                 <Input
                   id="expirationDate"
@@ -413,9 +497,9 @@ export default function LinksPage() {
               </div>
 
               <div className="space-y-3">
-                <Label className="text-slate-300">Métodos de pago</Label>
+                <Label className="text-slate-300">Metodos de pago</Label>
                 <div className="grid grid-cols-2 gap-3">
-                  {PAYMENT_METHODS.map((method) => (
+                  {currentPaymentMethods.map((method) => (
                     <div
                       key={method.id}
                       className="flex items-center space-x-2"
@@ -471,8 +555,18 @@ export default function LinksPage() {
                 className="pl-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
               />
             </div>
+            <Select value={providerFilter} onValueChange={setProviderFilter}>
+              <SelectTrigger className="w-36 bg-slate-800 border-slate-700 text-white">
+                <SelectValue placeholder="Proveedor" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="WOMPI">Wompi</SelectItem>
+                <SelectItem value="BOLD">Bold</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40 bg-slate-800 border-slate-700 text-white">
+              <SelectTrigger className="w-36 bg-slate-800 border-slate-700 text-white">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent className="bg-slate-800 border-slate-700">
@@ -495,7 +589,8 @@ export default function LinksPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-slate-800 hover:bg-slate-800/50">
-                  <TableHead className="text-slate-400">Título</TableHead>
+                  <TableHead className="text-slate-400">Titulo</TableHead>
+                  <TableHead className="text-slate-400">Proveedor</TableHead>
                   <TableHead className="text-slate-400">Monto</TableHead>
                   <TableHead className="text-slate-400">Estado</TableHead>
                   <TableHead className="text-slate-400">Creado</TableHead>
@@ -512,7 +607,8 @@ export default function LinksPage() {
                 {filteredLinks.map((link) => (
                   <TableRow
                     key={link.id}
-                    className="border-slate-800 hover:bg-slate-800/50"
+                    className="border-slate-800 hover:bg-slate-800/50 cursor-pointer"
+                    onClick={() => router.push(`/links/${link.id}`)}
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -526,11 +622,12 @@ export default function LinksPage() {
                         <div>
                           <p className="font-medium text-white">{link.title}</p>
                           <p className="text-xs text-slate-500">
-                            {link.boldLinkId}
+                            {link.providerLinkId || link.id}
                           </p>
                         </div>
                       </div>
                     </TableCell>
+                    <TableCell>{getProviderBadge(link.provider)}</TableCell>
                     <TableCell className="text-slate-300">
                       {formatCurrency(link.amount)}
                     </TableCell>
@@ -545,13 +642,22 @@ export default function LinksPage() {
                       </TableCell>
                     )}
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {link.boldUrl && (
+                      <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/links/${link.id}`)}
+                          className="text-slate-400 hover:text-white"
+                          title="Ver detalle"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {link.providerUrl && (
                           <>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => copyToClipboard(link.boldUrl!)}
+                              onClick={() => copyToClipboard(link.providerUrl!)}
                               className="text-slate-400 hover:text-white"
                               title="Copiar link"
                             >
@@ -561,7 +667,7 @@ export default function LinksPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() =>
-                                window.open(link.boldUrl!, "_blank")
+                                window.open(link.providerUrl!, "_blank")
                               }
                               className="text-slate-400 hover:text-white"
                               title="Abrir link"

@@ -1,0 +1,84 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  GESTOR
+}
+
+enum LinkStatus {
+  ACTIVE
+  PROCESSING
+  PAID
+  EXPIRED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  password     String
+  name         String
+  role         Role          @default(GESTOR)
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  createdBy    String?
+  paymentLinks PaymentLink[]
+
+  @@map("users")
+}
+
+model PaymentLink {
+  id             String     @id @default(cuid())
+  boldLinkId     String?    @unique
+  boldUrl        String?
+  title          String
+  description    String?
+  amount         Int
+  amountType     String     @default("CLOSE")
+  currency       String     @default("COP")
+  logoUrl        String?
+  status         LinkStatus @default(ACTIVE)
+  expirationDate DateTime?
+  callbackUrl    String?
+  paymentMethods String[]   @default(["CREDIT_CARD", "PSE", "NEQUI", "BOTON_BANCOLOMBIA"])
+
+  // Transaction data (updated via webhook)
+  transactionId String?
+  paymentMethod String?
+  payerEmail    String?
+  paidAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([boldLinkId])
+  @@map("payment_links")
+}
+
+model WebhookLog {
+  id        String   @id @default(cuid())
+  eventId   String   @unique
+  eventType String
+  paymentId String
+  payload   Json
+  processed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([paymentId])
+  @@index([eventType])
+  @@map("webhook_logs")
+}

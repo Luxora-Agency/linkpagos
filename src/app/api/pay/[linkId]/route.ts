@@ -80,8 +80,8 @@ export async function GET() {
   try {
     const merchantInfo = await getMerchantInfo();
     return NextResponse.json({
-      acceptanceToken: merchantInfo.data.presigned_acceptance.acceptance_token,
-      personalDataToken: merchantInfo.data.presigned_personal_data_auth.acceptance_token,
+      acceptance: merchantInfo.data.presigned_acceptance.acceptance_token,
+      personal: merchantInfo.data.presigned_personal_data_auth.acceptance_token,
       publicKey: process.env.WOMPI_PUBLIC_KEY
     });
   } catch (error) {

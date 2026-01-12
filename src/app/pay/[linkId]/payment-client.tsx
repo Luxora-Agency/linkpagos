@@ -354,33 +354,33 @@ export function PaymentPageClient({ link }: PaymentPageClientProps) {
 
               <form onSubmit={handleFinalAction} className="p-8 space-y-6">
                 <div className="space-y-3">
-                  <Label className="text-blue-300 text-[10px] font-bold uppercase tracking-widest ml-1">Medio de Pago</Label>
+                  <Label className="text-blue-400 text-[11px] font-black uppercase tracking-widest ml-1">Medio de Pago</Label>
                   <div className="grid grid-cols-3 gap-3">
                     {link.paymentMethods.map(m => (
                       <button
                         key={m}
                         type="button"
                         onClick={() => setMethod(m)}
-                        className={`flex flex-col items-center justify-center py-4 rounded-2xl border-2 transition-all active:scale-95 ${
-                          method === m ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-slate-800 bg-slate-800/30 text-slate-500'
+                        className={`flex flex-col items-center justify-center py-4 rounded-2xl border-2 transition-all active:scale-90 ${
+                          method === m ? 'border-blue-500 bg-blue-500/20 text-white shadow-[0_0_20px_rgba(59,130,246,0.3)]' : 'border-slate-800 bg-slate-800/40 text-slate-400 hover:border-slate-700'
                         }`}
                       >
-                        <div className={method === m ? 'text-blue-400' : ''}>{PAYMENT_METHOD_ICONS[m]}</div>
-                        <span className="text-[9px] mt-2 font-bold uppercase tracking-tighter">{PAYMENT_METHOD_LABELS[m]}</span>
+                        <div className={method === m ? 'text-blue-400 scale-110' : ''}>{PAYMENT_METHOD_ICONS[m]}</div>
+                        <span className="text-[10px] mt-2 font-black uppercase tracking-tighter">{PAYMENT_METHOD_LABELS[m]}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-blue-300 text-[10px] font-bold uppercase tracking-widest ml-1">Email de Notificación</Label>
+                  <Label className="text-blue-400 text-[11px] font-black uppercase tracking-widest ml-1">Email de Notificación</Label>
                   <Input 
                     required 
                     type="email" 
                     value={email} 
                     onChange={e => setEmail(e.target.value)}
                     placeholder="ejemplo@correo.com"
-                    className="bg-slate-950 border-slate-700 h-14 rounded-2xl text-white text-base placeholder:text-slate-700"
+                    className="bg-slate-950 border-slate-700 h-14 rounded-2xl text-white text-base font-medium placeholder:text-slate-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                   />
                 </div>
 
@@ -388,7 +388,7 @@ export function PaymentPageClient({ link }: PaymentPageClientProps) {
                   {method === "CARD" && (
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label className="text-blue-300/60 text-[9px] uppercase font-bold ml-1">Número de Tarjeta</Label>
+                        <Label className="text-blue-300 text-[10px] uppercase font-black ml-1">Número de Tarjeta</Label>
                         <div className="relative">
                           <Input 
                             required 
@@ -398,27 +398,27 @@ export function PaymentPageClient({ link }: PaymentPageClientProps) {
                               const v = e.target.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
                               if(v.length <= 19) setCardData({...cardData, number: v})
                             }}
-                            className="bg-slate-950 border-slate-700 h-14 pl-12 font-mono tracking-widest text-white text-lg rounded-xl focus:border-blue-500"
+                            className="bg-slate-950 border-slate-700 h-14 pl-12 font-mono tracking-[0.15em] text-white text-lg rounded-xl focus:border-blue-500"
                           />
-                          <CreditCard className="absolute left-4 top-4.5 w-5 h-5 text-slate-600" />
+                          <CreditCard className="absolute left-4 top-4.5 w-5 h-5 text-blue-500/50" />
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-blue-300/60 text-[9px] uppercase font-bold ml-1">Expiración</Label>
+                          <Label className="text-blue-300 text-[10px] uppercase font-black ml-1">Expiración</Label>
                           <div className="flex gap-2">
-                            <Input required placeholder="MM" maxLength={2} value={cardData.expMonth} onChange={e => setCardData({...cardData, expMonth: e.target.value.replace(/\D/g, '')})} className="bg-slate-950 border-slate-700 h-12 text-center font-mono text-white text-base rounded-xl" />
-                            <Input required placeholder="YY" maxLength={2} value={cardData.expYear} onChange={e => setCardData({...cardData, expYear: e.target.value.replace(/\D/g, '')})} className="bg-slate-950 border-slate-700 h-12 text-center font-mono text-white text-base rounded-xl" />
+                            <Input required placeholder="MM" maxLength={2} value={cardData.expMonth} onChange={e => setCardData({...cardData, expMonth: e.target.value.replace(/\D/g, '')})} className="bg-slate-950 border-slate-700 h-12 text-center font-mono text-white text-base rounded-xl focus:border-blue-500" />
+                            <Input required placeholder="YY" maxLength={2} value={cardData.expYear} onChange={e => setCardData({...cardData, expYear: e.target.value.replace(/\D/g, '')})} className="bg-slate-950 border-slate-700 h-12 text-center font-mono text-white text-base rounded-xl focus:border-blue-500" />
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-blue-300/60 text-[9px] uppercase font-bold ml-1">CVC</Label>
-                          <Input required type="password" placeholder="***" maxLength={4} value={cardData.cvc} onChange={e => setCardData({...cardData, cvc: e.target.value.replace(/\D/g, '')})} className="bg-slate-950 border-slate-700 h-12 text-center font-mono text-white text-base rounded-xl" />
+                          <Label className="text-blue-300 text-[10px] uppercase font-black ml-1">CVC</Label>
+                          <Input required type="password" placeholder="***" maxLength={4} value={cardData.cvc} onChange={e => setCardData({...cardData, cvc: e.target.value.replace(/\D/g, '')})} className="bg-slate-950 border-slate-700 h-12 text-center font-mono text-white text-base rounded-xl focus:border-blue-500" />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-blue-300/60 text-[9px] uppercase font-bold ml-1">Titular</Label>
-                        <Input required placeholder="NOMBRE EN LA TARJETA" value={cardData.name} onChange={e => setCardData({...cardData, name: e.target.value.toUpperCase()})} className="bg-slate-950 border-slate-700 h-12 text-white text-sm rounded-xl px-4" />
+                        <Label className="text-blue-300 text-[10px] uppercase font-black ml-1">Titular</Label>
+                        <Input required placeholder="COMO APARECE EN LA TARJETA" value={cardData.name} onChange={e => setCardData({...cardData, name: e.target.value.toUpperCase()})} className="bg-slate-950 border-slate-700 h-12 text-white text-sm font-bold rounded-xl uppercase px-4 focus:border-blue-500" />
                       </div>
                     </div>
                   )}
@@ -480,12 +480,11 @@ export function PaymentPageClient({ link }: PaymentPageClientProps) {
                 </div>
 
                 <Button 
-                  type="button"
-                  onClick={() => handleFinalAction()}
+                  type="submit"
                   disabled={loading || !method || !email}
-                  className="w-full h-16 text-xl font-black bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/30 rounded-2xl transition-all disabled:opacity-30"
+                  className="w-full h-16 text-xl font-black bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/30 rounded-2xl transition-all active:scale-[0.98] relative z-20 touch-manipulation flex items-center justify-center gap-2 disabled:opacity-30"
                 >
-                  {loading ? <Loader2 className="w-7 h-7 animate-spin mx-auto" /> : `Confirmar Pago`}
+                  {loading ? <Loader2 className="w-7 h-7 animate-spin" /> : `Confirmar Pago`}
                 </Button>
               </form>
             </div>

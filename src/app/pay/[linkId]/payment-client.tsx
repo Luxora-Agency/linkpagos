@@ -223,13 +223,26 @@ export function PaymentPageClient({ link }: PaymentPageClientProps) {
           </div>
 
           {/* Pay Button */}
-          <Button
-            onClick={handlePayment}
-            disabled={!link.providerUrl}
-            className={`w-full h-14 text-lg font-semibold bg-gradient-to-r ${getProviderColor()} hover:opacity-90 rounded-xl shadow-lg transition-all`}
-          >
-            Pagar Ahora
-          </Button>
+          {link.providerUrl ? (
+            <Button
+              onClick={handlePayment}
+              className={`w-full h-14 text-lg font-semibold bg-gradient-to-r ${getProviderColor()} hover:opacity-90 rounded-xl shadow-lg transition-all`}
+            >
+              Pagar Ahora
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <Button
+                disabled
+                className="w-full h-14 text-lg font-semibold bg-slate-800 text-slate-500 rounded-xl cursor-not-allowed"
+              >
+                Pagar Ahora
+              </Button>
+              <p className="text-xs text-red-400 text-center bg-red-500/10 p-2 rounded-lg border border-red-500/20">
+                Error: Este link no tiene una URL de pago válida. Por favor, contacta al administrador.
+              </p>
+            </div>
+          )}
 
           {/* Security badge */}
           <div className="flex items-center justify-center gap-2 mt-6 text-slate-500">

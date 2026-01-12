@@ -118,7 +118,7 @@ export async function POST(request: Request) {
     let providerLinkId: string | null = null;
     let providerUrl: string | null = null;
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pagos.guerrerogroup.org";
 
     if (provider === "BOLD") {
       // Create link in Bold

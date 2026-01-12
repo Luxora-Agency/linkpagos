@@ -157,7 +157,7 @@ export function LinkDetailClient({ link }: LinkDetailClientProps) {
     return link.provider === "BOLD" ? "Bold" : "Wompi";
   };
 
-  const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/pay/${link.id}`;
+  const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://pagos.guerrerogroup.org"}/pay/${link.id}`;
 
   return (
     <div className="space-y-6">
